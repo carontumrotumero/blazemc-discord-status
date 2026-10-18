@@ -28,6 +28,8 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           MC_HOST: ${{ vars.MC_HOST }}
           MC_PORT: ${{ vars.MC_PORT }}
+          UPDATE_INTERVAL_SECONDS: "2"
+          LOOP_DURATION_SECONDS: "290"
         run: node scripts/update-status.mjs
 
       - name: Commit message_id.txt if changed

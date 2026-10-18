@@ -48,14 +48,16 @@ campos se muestran sin tocar nada más.
 ## Intervalo de actualización
 
 El repo es público, así que los minutos de Actions son gratis e
-ilimitados. Para acercarse a "tiempo real" sin depender de que el cron de
-GitHub dispare cada minuto (cosa que GitHub no garantiza por debajo de
-~5 min), cada ejecución no actualiza una sola vez: queda corriendo en un
-loop interno actualizando cada `UPDATE_INTERVAL_SECONDS` (20s por
-defecto) durante `LOOP_DURATION_SECONDS` (280s por defecto, casi los 5
-minutos completos), hasta que el próximo disparo del cron la releva.
-Así el mensaje se mantiene al día cada ~20 segundos, sin gaps entre
-ejecuciones.
+ilimitados. Para que sea prácticamente en tiempo real sin depender de
+que el cron de GitHub dispare cada minuto (cosa que GitHub no garantiza
+por debajo de ~5 min), cada ejecución no actualiza una sola vez: queda
+corriendo en un loop interno actualizando cada `UPDATE_INTERVAL_SECONDS`
+(2s por defecto) durante `LOOP_DURATION_SECONDS` (290s por defecto, casi
+los 5 minutos completos), hasta que el próximo disparo del cron la
+releva. El intervalo de 2s es a propósito: es el margen seguro para no
+pegarle al rate-limit de Discord en el webhook (~5 requests cada 2s).
+Si Discord igual devuelve 429 en algún momento puntual, el script lo
+loguea y sigue con la próxima vuelta en vez de cortar todo.
 
 Ambas variables se pueden ajustar como env vars del step en
 `.github/workflows/update-status.yml` si se quiere un intervalo distinto.

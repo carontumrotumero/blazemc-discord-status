@@ -209,6 +209,14 @@ async function sendOrEditMessage(payload) {
       body: JSON.stringify(payload),
     });
     if (editRes.ok) return;
+    if (editRes.status === 429) {
+      // Rate-limited por Discord: no es un error real, solo hay que esperar
+      // un poco. Devolvemos sin lanzar para que el loop siga con la próxima
+      // iteración en vez de abortar toda la ejecución.
+      const body = await editRes.json().catch(() => ({}));
+      console.warn(`Rate-limited por Discord, reintenta en ${body.retry_after ?? "?"}s`);
+      return;
+    }
     if (editRes.status !== 404 && editRes.status !== 400) {
       throw new Error(`Error editando mensaje: ${editRes.status} ${await editRes.text()}`);
     }
@@ -254,7 +262,11 @@ async function main() {
 
   const deadline = Date.now() + loopSeconds * 1000;
   do {
-    await updateOnce();
+    try {
+      await updateOnce();
+    } catch (err) {
+      console.warn(`Fallo una actualización, sigue el loop: ${err.message}`);
+    }
     if (Date.now() >= deadline) break;
     await sleep(intervalSeconds * 1000);
   } while (Date.now() < deadline);
