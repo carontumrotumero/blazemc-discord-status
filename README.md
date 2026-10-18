@@ -50,3 +50,4 @@ campos se muestran sin tocar nada más.
 El cron está en `.github/workflows/update-status.yml`
 (`cron: "*/5 * * * *"`). GitHub Actions no garantiza intervalos menores a
 ~5 minutos de forma confiable, aunque el valor se baje.
+
