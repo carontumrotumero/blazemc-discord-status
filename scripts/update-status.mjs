@@ -227,7 +227,7 @@ async function sendOrEditMessage(payload) {
   await saveMessageId(created.id);
 }
 
-async function main() {
+async function updateOnce() {
   let status = null;
   try {
     status = await pingServer(MC_HOST, MC_PORT);
@@ -238,7 +238,26 @@ async function main() {
 
   const payload = buildEmbed(status);
   await sendOrEditMessage(payload);
-  console.log("Mensaje de Discord actualizado.");
+  console.log(`[${new Date().toISOString()}] Mensaje de Discord actualizado.`);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Loopea actualizando cada UPDATE_INTERVAL_SECONDS durante LOOP_DURATION_SECONDS
+// (por defecto, casi los 5 min completos hasta el próximo disparo del cron),
+// para cubrir todo el intervalo en vez de actualizar solo una vez cada 5 min.
+async function main() {
+  const loopSeconds = Number(process.env.LOOP_DURATION_SECONDS ?? "280");
+  const intervalSeconds = Number(process.env.UPDATE_INTERVAL_SECONDS ?? "20");
+
+  const deadline = Date.now() + loopSeconds * 1000;
+  do {
+    await updateOnce();
+    if (Date.now() >= deadline) break;
+    await sleep(intervalSeconds * 1000);
+  } while (Date.now() < deadline);
 }
 
 main().catch((err) => {

@@ -45,9 +45,22 @@ Todo el formato del mensaje (embed) está en `buildEmbed()` dentro de
 `scripts/update-status.mjs` — se puede tocar el texto, colores, o qué
 campos se muestran sin tocar nada más.
 
-## Cambiar el intervalo
+## Intervalo de actualización
 
-El cron está en `.github/workflows/update-status.yml`
-(`cron: "*/5 * * * *"`). GitHub Actions no garantiza intervalos menores a
-~5 minutos de forma confiable, aunque el valor se baje.
+El repo es público, así que los minutos de Actions son gratis e
+ilimitados. Para acercarse a "tiempo real" sin depender de que el cron de
+GitHub dispare cada minuto (cosa que GitHub no garantiza por debajo de
+~5 min), cada ejecución no actualiza una sola vez: queda corriendo en un
+loop interno actualizando cada `UPDATE_INTERVAL_SECONDS` (20s por
+defecto) durante `LOOP_DURATION_SECONDS` (280s por defecto, casi los 5
+minutos completos), hasta que el próximo disparo del cron la releva.
+Así el mensaje se mantiene al día cada ~20 segundos, sin gaps entre
+ejecuciones.
+
+Ambas variables se pueden ajustar como env vars del step en
+`.github/workflows/update-status.yml` si se quiere un intervalo distinto.
+
+Nota: el disparo del cron en sí (`cron: "*/5 * * * *"`) puede atrasarse
+algunos minutos en momentos de mucha carga en GitHub — es una limitación
+de la plataforma, no del código.
 
