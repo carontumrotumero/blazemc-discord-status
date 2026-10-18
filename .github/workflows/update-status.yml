@@ -1,0 +1,40 @@
+name: Update Discord status
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-discord-status
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run status updater
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          MC_HOST: ${{ vars.MC_HOST }}
+          MC_PORT: ${{ vars.MC_PORT }}
+        run: node scripts/update-status.mjs
+
+      - name: Commit message_id.txt if changed
+        run: |
+          if [ -n "$(git status --porcelain message_id.txt)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add message_id.txt
+            git commit -m "chore: update stored discord message id"
+            git push
+          fi

@@ -1,0 +1,10 @@
+{
+  "name": "blazemc-discord-status",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Edita un mensaje de Discord cada 5 min con el estado en vivo de BlazeMC.",
+  "scripts": {
+    "update": "node scripts/update-status.mjs"
+  }
+}
