@@ -193,7 +193,7 @@ function buildEmbed(status) {
           },
         ],
         timestamp: new Date().toISOString(),
-        footer: { text: "Se actualiza solo cada 5 minutos" },
+        footer: { text: "Se actualiza solo en tiempo real" },
       },
     ],
   };
