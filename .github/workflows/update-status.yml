@@ -2,11 +2,21 @@ name: Update Discord status
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch: {}
+    # Red de seguridad: si la cadena de auto-disparo se corta por algún
+    # motivo, esto eventualmente la reinicia. El cron de GitHub no es
+    # confiable para intervalos cortos (puede atrasarse horas), por eso
+    # la actualización en tiempo real no depende de esto.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: "Loop corto (30s) para probar el auto-encadenado sin esperar 6 horas"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: update-discord-status
@@ -15,7 +25,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 9
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
 
@@ -29,7 +39,9 @@ jobs:
           MC_HOST: ${{ vars.MC_HOST }}
           MC_PORT: ${{ vars.MC_PORT }}
           UPDATE_INTERVAL_SECONDS: "2"
-          LOOP_DURATION_SECONDS: "290"
+          LOOP_DURATION_SECONDS: ${{ inputs.test_mode && '30' || '20700' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_WORKFLOW_FILE: "update-status.yml"
         run: node scripts/update-status.mjs
 
       - name: Commit message_id.txt if changed

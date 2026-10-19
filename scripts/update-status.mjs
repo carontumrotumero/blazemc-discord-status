@@ -253,9 +253,44 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// El cron de GitHub Actions ("schedule") NO es confiable para intervalos
+// cortos: en la práctica puede atrasarse una o varias horas sin avisar,
+// en vez de disparar cada 5 min como dice el YAML. Por eso esta corrida no
+// depende del cron para "revivir": al llegar al final de su propio loop,
+// se auto-dispara a sí misma vía la API de GitHub (workflow_dispatch)
+// ANTES de terminar, encadenando sin cortes. El cron queda solo como red
+// de seguridad por si la cadena se corta por algún motivo.
+async function triggerNextRun() {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPOSITORY; // "owner/repo", lo pone Actions solo
+  const workflowFile = process.env.GITHUB_WORKFLOW_FILE ?? "update-status.yml";
+  if (!token || !repo) {
+    console.warn("Sin GITHUB_TOKEN/GITHUB_REPOSITORY: no se puede auto-encadenar la próxima corrida.");
+    return;
+  }
+
+  const res = await fetch(
+    `https://api.github.com/repos/${repo}/actions/workflows/${workflowFile}/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ref: process.env.GITHUB_REF_NAME ?? "main" }),
+    },
+  );
+  if (res.ok) {
+    console.log("Próxima corrida encadenada.");
+  } else {
+    console.warn(`No se pudo encadenar la próxima corrida: ${res.status} ${await res.text()}`);
+  }
+}
+
 // Loopea actualizando cada UPDATE_INTERVAL_SECONDS durante LOOP_DURATION_SECONDS
-// (por defecto, casi los 5 min completos hasta el próximo disparo del cron),
-// para cubrir todo el intervalo en vez de actualizar solo una vez cada 5 min.
+// (por defecto, casi el máximo de 6h que permite un job de GitHub Actions),
+// para cubrir todo el tiempo sin gaps en vez de depender del cron.
 async function main() {
   const loopSeconds = Number(process.env.LOOP_DURATION_SECONDS ?? "280");
   const intervalSeconds = Number(process.env.UPDATE_INTERVAL_SECONDS ?? "20");
@@ -270,6 +305,8 @@ async function main() {
     if (Date.now() >= deadline) break;
     await sleep(intervalSeconds * 1000);
   } while (Date.now() < deadline);
+
+  await triggerNextRun().catch((err) => console.warn(`Error encadenando: ${err.message}`));
 }
 
 main().catch((err) => {
